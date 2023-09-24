@@ -11,6 +11,10 @@
 // GLuint : unsigned int
 GLuint renderingProgram;
 GLuint vao[numVAOs];
+// location of triangle on x axis
+float x = 0.0f;
+// offset for moving the triangle
+float inc = 0.01f;
 
 using namespace std;
 
@@ -125,10 +129,25 @@ void init (GLFWwindow* window) {
 }
 
 void display(GLFWwindow* window, double currentTime) {
+    // clear the background to black, each time
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glUseProgram(renderingProgram);
-    glPointSize(30.0f);
-    // repeat to run "vertShader.glsl" 3 times
-    // gl_VertexID is increased automatically from 0
+
+    // move the triangle along x axis
+    x += inc;
+    // switch to moving the triangle to the left
+    if (x > 1.0f) inc = -0.01f;
+    // switch to moving the triangle to the right
+    if (x < -1.0f) inc = 0.01f;
+
+    // get ptr to "offset"
+    GLuint offsetLoc = glGetUniformLocation(renderingProgram, "offset");
+
+    glProgramUniform1f(renderingProgram, offsetLoc, x);
+
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
