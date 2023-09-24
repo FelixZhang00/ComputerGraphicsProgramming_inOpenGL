@@ -3,7 +3,9 @@
 #include <glew.h>
 #include <glfw3.h>
 #include <iostream>
-
+#include <string>
+#include <iostream>
+#include <fstream>
 #define numVAOs 1
 
 // GLuint : unsigned int
@@ -12,20 +14,70 @@ GLuint vao[numVAOs];
 
 using namespace std;
 
+// displays the contents of OpenGL's log when GLSL compilation failed
+void printShaderLog(GLuint shader) {
+    int len = 0;
+    int chWrittn = 0;
+    char* log;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+    if (len > 0) {
+        log = (char*)malloc(len);
+        glGetShaderInfoLog(shader, len, &chWrittn, log);
+        cout << "Shader Info Log: " << log << endl;
+        free(log);
+    }
+}
+
+// displays the contents of OpenGL's log when GLSL linking failed
+void printProgramLog(int prog) {
+    int len = 0;
+    int chWrittn = 0;
+    char* log;
+    glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &len);
+    if (len > 0) {
+        log = (char*)malloc(len);
+        glGetProgramInfoLog(prog, len, &chWrittn, log);
+        cout << "Program Info Log: " << log << endl;
+        free(log);
+    }
+}
+
+// checks the OpenGL error flag for the occurrrence of an OpenGL error
+// detects both GLSL compilation errors and OpenGL runtime errors
+bool checkOpenGLError() {
+    bool foundError = false;
+    int glErr = glGetError();
+    while (glErr != GL_NO_ERROR) {
+        cout << "glError: " << glErr << endl;
+        foundError = true;
+        glErr = glGetError();
+    }
+    return foundError;
+}
+
+string readShaderSource(const char *filePath) {
+    string content = "";
+    ifstream fileStream(filePath, ios::in);
+//    cerr << "Error: " << strerror(errno) << endl;  // No such file or directory
+//    cout << fileStream.is_open() << endl;  // 0
+    string line = "";
+    while (!fileStream.eof()) {
+        getline(fileStream, line);
+        content.append(line + "\n");
+    }
+    fileStream.close();
+    return content;
+}
+
+
+
 GLuint createShaderProgram() {
 
-    // declares two shaders as character strings
-    const char* vshaderSource =
-            "#version 410 \n"
-            "void main(void) \n"
-            // sets a vertex's coordinate position in 3D space
-            // origin location : (0,0,0)
-            "{gl_Position = vec4(0.0, 0.0, 0.0, 1.0);}";
-    const char* fshaderSource =
-            "#version 410 \n"
-            "out vec4 color; \n"
-            "void main(void) \n"
-            "{color = vec4(0.0, 0.0, 1.0, 1.0);}";
+    string vertShaderStr = readShaderSource("vertShader.glsl");
+    string fragShaderStr = readShaderSource("fragShader.glsl");
+
+    const char* vertShaderSrc = vertShaderStr.c_str();
+    const char* fragShaderSrc = fragShaderStr.c_str();
 
     // glCreateShader : generates the two shaders of types GL_VERTEX_SHADER and GL_FRAGMENT_SHADER
     // OpenGL creates each shader object, and returns an integer ID for each
@@ -34,8 +86,8 @@ GLuint createShaderProgram() {
 
     // loads the GLSL code from the strings into the empty shader objects
     // glShaderSource(ShaderObject, NumberOfStrings : 1, ArrayOfPointers, -)
-    glShaderSource(vShader, 1, &vshaderSource, nullptr);
-    glShaderSource(fShader, 1, &fshaderSource, nullptr);
+    glShaderSource(vShader, 1, &vertShaderSrc, nullptr);
+    glShaderSource(fShader, 1, &fragShaderSrc, nullptr);
 
     // the shaders are each compiled
     glCompileShader(vShader);
