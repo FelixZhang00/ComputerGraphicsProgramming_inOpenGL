@@ -69,39 +69,50 @@ string readShaderSource(const char *filePath) {
     return content;
 }
 
-
-
 GLuint createShaderProgram() {
+    GLint vertCompiled;
+    GLint fragCompiled;
+    GLint linked;
 
-    string vertShaderStr = readShaderSource("vertShader.glsl");
-    string fragShaderStr = readShaderSource("fragShader.glsl");
+    string vertShaderStr = readShaderSource("../vertShader.glsl");
+    string fragShaderStr = readShaderSource("../fragShader.glsl");
 
     const char* vertShaderSrc = vertShaderStr.c_str();
     const char* fragShaderSrc = fragShaderStr.c_str();
 
-    // glCreateShader : generates the two shaders of types GL_VERTEX_SHADER and GL_FRAGMENT_SHADER
-    // OpenGL creates each shader object, and returns an integer ID for each
     GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    // loads the GLSL code from the strings into the empty shader objects
-    // glShaderSource(ShaderObject, NumberOfStrings : 1, ArrayOfPointers, -)
     glShaderSource(vShader, 1, &vertShaderSrc, nullptr);
     glShaderSource(fShader, 1, &fragShaderSrc, nullptr);
 
-    // the shaders are each compiled
     glCompileShader(vShader);
+    checkOpenGLError();
+    glGetShaderiv(vShader, GL_COMPILE_STATUS, &vertCompiled);
+    if (vertCompiled != 1) {
+        cout << "vertex compilation failed" << endl;
+        printShaderLog(vShader);
+    }
+
     glCompileShader(fShader);
+    checkOpenGLError();
+    glGetShaderiv(fShader, GL_COMPILE_STATUS, &fragCompiled);
+    if (fragCompiled != 1) {
+        cout << "fragment compilation failed" << endl;
+        printShaderLog(fShader);
+    }
 
-    // the integer ID of a program object
     GLuint vfProgram = glCreateProgram();
-
-    // attatches each of the shaders to the program object
     glAttachShader(vfProgram, vShader);
     glAttachShader(vfProgram, fShader);
 
-    // requests that the GLSL compiler ensure that the shaders are compatible
     glLinkProgram(vfProgram);
+    checkOpenGLError();
+    glGetProgramiv(vfProgram, GL_LINK_STATUS, &linked);
+    if (linked != 1) {
+        cout << "linking failed" << endl;
+        printProgramLog(vfProgram);
+    }
 
     return vfProgram;
 }
@@ -109,21 +120,13 @@ GLuint createShaderProgram() {
 
 void init (GLFWwindow* window) {
     renderingProgram = createShaderProgram();
-
-    // VAO : Vertex Array Objects, OpenGL requires at least one VAO
     glGenVertexArrays(numVAOs, vao);
     glBindVertexArray(vao[0]);
 }
 
 void display(GLFWwindow* window, double currentTime) {
-
-    // loads the program containing the two compiled shaders into the OpenGL pipeline stages (onto the GPU)
     glUseProgram(renderingProgram);
-
     glPointSize(30.0f);
-
-    // initiates pipeline processing
-    // mode: GL_POINTS, from 0, one (point)
     glDrawArrays(GL_POINTS, 0, 1);
 }
 
@@ -135,7 +138,7 @@ int main(void) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // and neither this
     GLFWwindow* window = glfwCreateWindow(600, 600, "Chapter2 - program2", nullptr, nullptr);
     glfwMakeContextCurrent(window);
-    if (glewInit() != GLEW_OK) {exit(EXIT_FAILURE);}                // without the line 80 or 81, this makes an error
+    if (glewInit() != GLEW_OK) {exit(EXIT_FAILURE);}
     glfwSwapInterval(1);
 
     init(window);
